@@ -5,7 +5,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
-import java.util.ArrayList;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -13,17 +12,17 @@ import static org.junit.jupiter.api.Assertions.*;
 public class UserTest {
     private static Map<String, String> users = Map.of( "Funny", "Valentine");
     private static  Map<String, Integer> giftCards = Map.of( "mctastytriplebacon", 100);
-    User user;
-//    @Test
-//    public void test01checkUserIsInvalid() {
-//        assertEquals(User.invalidUsernameOrPassword, new User().setUsers(users).checkValidUser("Funny","d4c"));
-//    }
-
     @BeforeEach
     public void  beforeEach() {
         user = user();
     }
 
+
+    User user;
+    @Test
+    public void test01checkUserIsInvalid() {
+        assertThrowsLike(() -> user.login("Funny","d4c"),User.invalidUsernameOrPassword);
+    }
 
     @Test
     public void test02checkUserRedeemedCard() {

@@ -21,6 +21,11 @@ public class User {
         return "123";
     }
 
+    public User login(String username, String password){
+        checkValidUser(username, password);
+        return this;
+    }
+
     public void redeemGiftCard(String token, String gcId) {
         assertTokenIsValid(token);
         assertGiftCardExists(gcId);
