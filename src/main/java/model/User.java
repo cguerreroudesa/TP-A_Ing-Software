@@ -4,25 +4,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class User {
-    private Map<String, String> validUsers;
+    public static String notEnoughMoneyToBuy = "La compra excede el saldo de la tarjeta";
+    public static String giftCardNotreedemed = "La Gift Card no fue redimida";
     public static String invalidUsernameOrPassword = "Invalid username or password";
     public static String noExisteTalGiftCard = "No existe tal gift card";
     private Map<String, Integer> giftCards;
     private Map<String, Integer> userGiftCards;
-
+    private Map<String, GiftCardMovements> logGiftCardMovements;
+    private Map<String, String> validUsers;
 
     public User() {
         this.userGiftCards = new HashMap<>();
-    }
-
-    public User setUsers(Map<String, String> validUsers){
-        this.validUsers = validUsers;
-        return this;
-    }
-
-    public User setGiftCards(Map<String, Integer> giftCards){
-        this.giftCards = giftCards;
-        return this;
     }
 
     public String generateToken(){
@@ -35,6 +27,26 @@ public class User {
         userGiftCards.put(gcId, giftCards.get(gcId));
     }
 
+    public void buyshi(String gcId, int price){
+        assertGiftCardRedeemed(gcId);
+        Integer balance = userGiftCards.get(gcId);
+        Integer total = balance - price;
+        assertEnoughMoneyToBuy(total);
+        userGiftCards.put(gcId, total);
+    }
+
+    private static void assertEnoughMoneyToBuy(Integer total) {
+        if (total < 0){
+            throw new RuntimeException(notEnoughMoneyToBuy);
+        }
+    }
+
+    private void assertGiftCardRedeemed(String gcId) {
+        if ( !userGiftCards.containsKey(gcId) ) {
+            throw new RuntimeException(giftCardNotreedemed);
+        }
+    }
+    
     private void assertGiftCardExists(String gcId) {
         if ( !giftCards.containsKey(gcId) ) {
             throw new RuntimeException(noExisteTalGiftCard);
@@ -52,6 +64,16 @@ public class User {
         if ( !pass.equals( validUsers.get( user ) ) ) {
             throw new RuntimeException(invalidUsernameOrPassword);
         }
+    }
+
+    public User setUsers(Map<String, String> validUsers){
+        this.validUsers = validUsers;
+        return this;
+    }
+
+    public User setGiftCards(Map<String, Integer> giftCards){
+        this.giftCards = giftCards;
+        return this;
     }
 
     public Map<String, Integer> getUserGiftCards() {

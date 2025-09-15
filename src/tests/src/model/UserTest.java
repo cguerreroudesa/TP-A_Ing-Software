@@ -1,9 +1,11 @@
 package model;
 
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
+import java.util.ArrayList;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -11,28 +13,48 @@ import static org.junit.jupiter.api.Assertions.*;
 public class UserTest {
     private static Map<String, String> users = Map.of( "Funny", "Valentine");
     private static  Map<String, Integer> giftCards = Map.of( "mctastytriplebacon", 100);
-
+    User user;
 //    @Test
 //    public void test01checkUserIsInvalid() {
 //        assertEquals(User.invalidUsernameOrPassword, new User().setUsers(users).checkValidUser("Funny","d4c"));
 //    }
 
+    @BeforeEach
+    public void  beforeEach() {
+        user = user();
+    }
+
+
     @Test
     public void test02checkUserRedeemedCard() {
-        User user = new User().setUsers(users).setGiftCards(giftCards);
         user.redeemGiftCard("123","mctastytriplebacon");
         assertTrue(user.getUserGiftCards().containsKey("mctastytriplebacon"));
     }
 
     @Test
     public void test03checkUserCannotRedeemInvalidCard() {
-        User user = new User()
-                .setUsers(users)
-                .setGiftCards(giftCards);
-
         assertThrowsLike(
                 () -> user.redeemGiftCard("123","mctastytriple"),
-                user.noExisteTalGiftCard
+                User.noExisteTalGiftCard
+        );
+    }
+
+    @Test
+    public void test04useAreedemedGiftCard() {
+        user.redeemGiftCard("123","mctastytriplebacon");
+        user.buyshi("mctastytriplebacon",80);
+        assertEquals(20,user.getUserGiftCards().get("mctastytriplebacon"));
+
+    }
+
+    @Test
+    public void test05cannotSpendMoreThanTheBalanceLeftInACard() {
+        user.redeemGiftCard("123","mctastytriplebacon");
+        user.buyshi("mctastytriplebacon",80);
+        assertEquals(20,user.getUserGiftCards().get("mctastytriplebacon"));
+        assertThrowsLike(
+                () -> user.buyshi("mctastytriplebacon",80),
+                User.notEnoughMoneyToBuy
         );
     }
 
@@ -42,7 +64,7 @@ public class UserTest {
 
     //Fijarse que la tarjeta tiene el map con la lista de sus gastos
 
-    //Movimientos se encarga de   las acciones de la gc
+    //Movimientos se encarga de las acciones de la gc
 
     //Hacer para multiples
 
@@ -52,6 +74,12 @@ public class UserTest {
                 assertThrows(RuntimeException.class, runnable).getMessage()
         );
     }
+//    private static TusLibrosSystemFacade systemFacade() {
+//        return systemFacade( new Clock() );
+//    }
 
+    private static User user() {
+        return new User().setUsers(users).setGiftCards(giftCards);
+    }
 }
 
