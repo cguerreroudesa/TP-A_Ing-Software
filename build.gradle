@@ -1,0 +1,32 @@
+plugins {
+    id 'java'
+}
+
+group = 'org.udesa'
+version = '0.0.1-SNAPSHOT'
+description = 'giftcards'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+

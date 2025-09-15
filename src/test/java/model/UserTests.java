@@ -1,19 +1,18 @@
-package tests;
+package model;
 
-import model.User;
-import org.testng.Assert;
-import org.testng.annotations.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.lang.reflect.Executable;
 import java.util.Map;
 
-import static org.testng.Assert.assertThrows;
-import static org.testng.AssertJUnit.assertEquals;
-import static org.testng.AssertJUnit.assertTrue;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
+
 
 public class UserTests {
-    private static Map users = Map.of( "Funny", "Valentine");
-    private static Map giftCards = Map.of( "mctastytriplebacon", 100);
+    private static  Map<String, String> users = Map.of( "Funny", "Valentine");
+    private static  Map<String, Integer> giftCards = Map.of( "mctastytriplebacon", 100);
 
 //    @Test
 //    public void test01checkUserIsInvalid() {
@@ -49,7 +48,7 @@ public class UserTests {
 
     //Hacer para multiples
 
-    private void assertThrowsLike(ThrowingRunnable runnable, String expectedMessage) {
+    private void assertThrowsLike(Executable runnable, String expectedMessage) {
         assertEquals(
                 expectedMessage,
                 assertThrows(RuntimeException.class, runnable).getMessage()
