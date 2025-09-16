@@ -21,7 +21,8 @@ public class UserTest {
     User user;
     @Test
     public void test01checkUserIsInvalid() {
-        assertThrowsLike(() -> user.login("Funny","d4c"),User.invalidUsernameOrPassword);
+        assertThrowsLike(() -> user.login("Funny","d4c"),
+                User.invalidUsernameOrPassword);
     }
 
     @Test
@@ -40,17 +41,15 @@ public class UserTest {
 
     @Test
     public void test04useAreedemedGiftCard() {
-        user.redeemGiftCard("123","mctastytriplebacon");
-        user.buyshi("mctastytriplebacon",80);
+        user.redeemGiftCard("123","mctastytriplebacon").buyshi("mctastytriplebacon",80);
         assertEquals(20,user.getUserGiftCards().get("mctastytriplebacon"));
 
     }
 
     @Test
     public void test05cannotSpendMoreThanTheBalanceLeftInACard() {
-        user.redeemGiftCard("123","mctastytriplebacon");
-        user.buyshi("mctastytriplebacon",80);
-        assertEquals(20,user.getUserGiftCards().get("mctastytriplebacon"));
+        user.redeemGiftCard("123","mctastytriplebacon")
+                .buyshi("mctastytriplebacon",80);
         assertThrowsLike(
                 () -> user.buyshi("mctastytriplebacon",80),
                 User.notEnoughMoneyToBuy

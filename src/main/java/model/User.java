@@ -12,6 +12,7 @@ public class User {
     private Map<String, Integer> userGiftCards;
     private Map<String, GiftCardMovements> logGiftCardMovements;
     private Map<String, String> validUsers;
+    private String token;
 
     public User() {
         this.userGiftCards = new HashMap<>();
@@ -23,21 +24,24 @@ public class User {
 
     public User login(String username, String password){
         checkValidUser(username, password);
+        this.token = generateToken();
+        // Agregar que si ok comience el clock, hay que ver de que despues de los
+        // 5 mins tiene que cambiar el token
         return this;
     }
 
-    public void redeemGiftCard(String token, String gcId) {
+    public User redeemGiftCard(String token, String gcId) {
         assertTokenIsValid(token);
         assertGiftCardExists(gcId);
         userGiftCards.put(gcId, giftCards.get(gcId));
+        return this;
     }
 
     public void buyshi(String gcId, int price){
         assertGiftCardRedeemed(gcId);
-        Integer balance = userGiftCards.get(gcId);
-        Integer total = balance - price;
-        assertEnoughMoneyToBuy(total);
-        userGiftCards.put(gcId, total);
+        Integer finalBalance = userGiftCards.get(gcId) - price;
+        assertEnoughMoneyToBuy(finalBalance);
+        userGiftCards.put(gcId, finalBalance);
     }
 
     private static void assertEnoughMoneyToBuy(Integer total) {
