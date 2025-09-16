@@ -1,30 +1,25 @@
 package model;
 
-import java.util.Random;
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 public class Session {
-    private final int privateKey;
-    private final int publicKey;
-
-    public Session() {
-        Random rnd = new Random();
-        this.privateKey = rnd.nextInt(1000) + 1; // privada aleatoria
-        this.publicKey  = privateKey * 2;        // pública relacionada
+    String token;
+    Clock clock;
+    LocalDateTime tokenCreationTime;
+    public Session(Clock clock) {
+        this.tokenCreationTime = clock.now();
+        this.clock = clock;
+        this.token = generateToken();
     }
 
-    public int getPrivateKey() {
-        return privateKey;
+    private String generateToken() {
+        return UUID.randomUUID().toString();
     }
 
-    public int getPublicKey() {
-        return publicKey;
-    }
+    public String getToken() {return this.token;}
 
-    public int signToken(int token) {
-        return token * privateKey;
-    }
+    public Clock getClock() {return this.clock;}
 
-    public boolean verifyToken(int token, int signedToken) {
-        return signedToken == token * (publicKey / 2);
-    }
+    public LocalDateTime getCreationTime() {return this.tokenCreationTime;}
 }

@@ -1,21 +1,22 @@
 package model;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 public class GiftCardMovements {
 
-    private ArrayList<String> commerce;
-    private ArrayList<Integer> expense;
-    private ArrayList<LocalDate> expenseDate;
+    private String commerce;
+    private Integer expense;
+    private LocalDateTime expenseDate;
 
-    public GiftCardMovements(Integer expense, LocalDate expenseDate, String commerce) {
-        this.commerce = new ArrayList<>();
-        this.expense = new ArrayList<>();
-        this.expenseDate = new ArrayList<>();
-
-        this.commerce.add(commerce);
-        this.expense.add(expense);
-        this.expenseDate.add(expenseDate);
+    public GiftCardMovements(Integer expense, LocalDateTime expenseDate, String commerce) {
+        this.commerce = commerce;
+        this.expense = expense;
+        this.expenseDate = expenseDate;
     }
+
+    public String getCommerce() {   return commerce;        }
+    public Integer getExpense() {  return expense;        }
+    public LocalDateTime getExpenseDate() {     return expenseDate;       }
 }
