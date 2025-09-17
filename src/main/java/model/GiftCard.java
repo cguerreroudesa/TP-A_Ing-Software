@@ -1,14 +1,39 @@
 package model;
 
-import java.security.PublicKey;
-
 public class GiftCard {
-    String id;
-    int amount;
+    private String id;
+    private int initialBalance;
+    private int currentBalance;
+    private boolean redeemed;
 
-    public void GiftCard(String id, int amount){
+    public static String giftCardRedeemed = "Giftcard already redeemed";
+    public static String negativeAmountNotAllowed = "Amount must be positive";
+    public static String insufficientBalance = "Insufficient balance";
+
+    public GiftCard(String id, int balance){
         this.id = id;
-        this.amount = amount;
+        this.initialBalance = balance;
+        this.currentBalance = balance;
+        this.redeemed = false;
+    }
+
+    public String getId(){ return id; }
+    public int getBalance(){ return currentBalance; }
+    public boolean isRedeemed(){ return redeemed; }
+
+    public GiftCard redeem(){
+        if (redeemed){
+            throw new RuntimeException(giftCardRedeemed);
+        }
+        redeemed = true;
+        return this;
+    }
+
+    public void decreaseBalance(int amount){
+        if (amount < 0){ throw new RuntimeException(negativeAmountNotAllowed);}
+        if (amount > currentBalance){ throw new RuntimeException(insufficientBalance);}
+
+        this.currentBalance -= amount;
     }
 
 

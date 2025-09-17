@@ -4,21 +4,21 @@ import java.util.*;
 
 public class Facade {
     public static String merchantNotFound = "Merchant not found";
-    public static String incorrectToken = "Token incorrecto";
-    public static String notEnoughMoneyToBuy = "La compra excede el saldo de la tarjeta";
-    public static String giftCardNotreedemed = "La Gift Card no fue redimida";
+    public static String giftCardNotRedeemed = "Giftcard not redeemed yet";
     public static String invalidUsernameOrPassword = "Invalid username or password";
-    public static String giftCardNotFound = "No existe tal gift card";
-    private Map<String, Integer> giftCards;
+    public static String giftCardNotFound = "Gift card not found";
+
+    private Map<String, GiftCard> giftCards;
     private Map<String, String> validUsers;
-    private List<String> merchants;
     private Map<String, List<GiftCardMovements>> logGiftCardMovements;
-    private Map<String, Integer> userGiftCards;
+    private Map<String, GiftCard> userGiftCards;
+    private List<String> merchants;
+
     private Session session;
     private String token;
     private Clock clock;
 
-    public Facade(List<String> merchants, Map<String, Integer> giftCards, Map<String, String> validUsers, Clock clock) {
+    public Facade(List<String> merchants, Map<String, GiftCard> giftCards, Map<String, String> validUsers, Clock clock) {
         this.userGiftCards = new HashMap<>();
         this.logGiftCardMovements = new HashMap<>();
         this.merchants = merchants;
@@ -39,51 +39,75 @@ public class Facade {
     }
 
     public Facade redeemGiftCard(String token, String gcId) {
-        assertTokenIsValid(token);
-        assertGiftCardExists(gcId);
-        userGiftCards.put(gcId, giftCards.get(gcId));
+        session.ensureValid(token);
+
+        userGiftCards.put(gcId, requireGiftCard(gcId).redeem());
         logGiftCardMovements.put(gcId, new ArrayList<>());
+
         return this;
     }
 
-    public void buyProduct(String gcId, int price, String merchantId, String token){
-        assertGiftCardRedeemed(gcId);
-        assertTokenIsValid(token);
-        assertMerchanExists(merchantId);
-        Integer finalBalance = userGiftCards.get(gcId) - price;
-        assertEnoughMoneyToBuy(finalBalance);
-        userGiftCards.put(gcId, finalBalance);
-        logGiftCardMovements.get(gcId).add(new GiftCardMovements(price,clock.now(),merchantId));
+//    public void buyProduct(String gcId, int price, String merchantId, String token){
+//        assertGiftCardRedeemed(gcId);
+//        assertTokenIsValid(token);
+//        assertMerchanExists(merchantId);
+//
+//        Integer finalBalance = userGiftCards.get(gcId) - price;
+//        assertEnoughMoneyToBuy(finalBalance);
+//        userGiftCards.put(gcId, finalBalance);
+//        logGiftCardMovements.get(gcId).add(new GiftCardMovements(price,clock.now(),merchantId));
+//    }
+
+    //Pongo esto en vez de buy porque para la compra no hace falta el token y eso. Solo el id de merchant y giftcard
+    public void merchantCharge(String merchantId, String gcId, int amount){
+        assertMerchantExists(merchantId);
+        requireUserGiftCard(gcId).decreaseBalance(amount);
+
+        logGiftCardMovements.get(gcId).add(new GiftCardMovements(amount, clock.now(), merchantId));
     }
 
-    private void assertMerchanExists(String merchantId) {
+
+    public int balanceOf(String token, String gcId) {
+        session.ensureValid(token);
+        return requireUserGiftCard(gcId).getBalance();
+    }
+
+    public List<GiftCardMovements> movementsOf(String token, String gcId){
+        session.ensureValid(token);
+        requireUserGiftCard(gcId);
+        return logGiftCardMovements.get(gcId);
+    }
+
+    private void assertMerchantExists(String merchantId) {
         if(!merchants.contains(merchantId)){
             throw new RuntimeException(merchantNotFound);
         }
     }
 
-    private static void assertEnoughMoneyToBuy(Integer total) {
-        if (total < 0){
-            throw new RuntimeException(notEnoughMoneyToBuy);
-        }
-    }
-
     private void assertGiftCardRedeemed(String gcId) {
         if ( !userGiftCards.containsKey(gcId) ) {
-            throw new RuntimeException(giftCardNotreedemed);
-        }
-    }
-    
-    private void assertGiftCardExists(String gcId) {
-        if ( !giftCards.containsKey(gcId) ) {
-            throw new RuntimeException(giftCardNotFound);
+            throw new RuntimeException(giftCardNotRedeemed);
         }
     }
 
     private void assertTokenIsValid(String token) {
-        if (!(Objects.equals(token, this.token))) {
-            throw new RuntimeException(incorrectToken);
+        session.ensureValid(token);
+    }
+
+    private GiftCard requireGiftCard(String gcId) {
+        return obtainFrom(giftCards, gcId, giftCardNotFound);
+    }
+
+    private GiftCard requireUserGiftCard(String gcId) {
+        return obtainFrom(userGiftCards, gcId, giftCardNotRedeemed);
+    }
+
+    private GiftCard obtainFrom(Map<String, GiftCard> source, String gcId, String errorMessage) {
+        GiftCard gc = source.get(gcId);
+        if (gc == null) {
+            throw new RuntimeException(errorMessage);
         }
+        return gc;
     }
 
 
@@ -94,7 +118,7 @@ public class Facade {
     }
 
 
-    public Map<String, Integer> getUserGiftCards() {
+    public Map<String, GiftCard> getUserGiftCards() {
         return userGiftCards;
     }
 
