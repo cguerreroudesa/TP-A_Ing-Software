@@ -6,6 +6,7 @@ public class GiftCard {
     private int currentBalance;
     private boolean redeemed;
 
+    public static String giftCardNotRedeemed = "Giftcard not redeemed";
     public static String giftCardRedeemed = "Giftcard already redeemed";
     public static String negativeAmountNotAllowed = "Amount must be positive";
     public static String insufficientBalance = "Insufficient balance";
@@ -29,11 +30,13 @@ public class GiftCard {
         return this;
     }
 
-    public void decreaseBalance(int amount){
+    public GiftCard decreaseBalance(int amount){
+        if (!redeemed){throw new RuntimeException(giftCardNotRedeemed);}
         if (amount < 0){ throw new RuntimeException(negativeAmountNotAllowed);}
         if (amount > currentBalance){ throw new RuntimeException(insufficientBalance);}
 
         this.currentBalance -= amount;
+        return this;
     }
 
 
