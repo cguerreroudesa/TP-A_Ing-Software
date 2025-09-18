@@ -7,21 +7,31 @@ import org.junit.jupiter.api.function.Executable;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class FacadeTest {
+    public static final String CORRECT_GC_ID = "mcTastyTripleBacon";
+    private static final String MERCHANT_MCD = "McDonalds";
+    private static final String MERCHANT_UNKNOWN = "BurgerKing";
+
     private static Map<String, String> users = Map.of( "Funny", "Valentine","Johnny","Joestar");
-    private static Map<String, Integer> giftCards = Map.of( "mctastytriplebacon", 100);
     private static List<String> merchants = Arrays.asList("McDonalds", "Starbucks");
-    Facade facade;
+
+    public static String tokenShouldChange = "Each login must generate a new token";
+    public static String sessionTimeShouldChange = "Each login must refresh the session";
+
+    private Facade facade;
+    private String userToken;
+
     @BeforeEach
-    public void  beforeEach() {
-        facade = facade();
+    public void setUp() {
+        facade = newFacade();
+        userToken = facade.getToken();
     }
+
 
     @Test
     public void test01userIsInvalid() {
@@ -31,93 +41,85 @@ public class FacadeTest {
 
     @Test
     public void test02tokenIsInvalid() {
-        assertThrowsLike(() -> facade.redeemGiftCard("123","mctastytriplebacon"),
-                Facade.incorrectToken);
+        assertThrowsLike(() -> facade.redeemGiftCard("tokenIncorrecto", CORRECT_GC_ID),
+                Session.incorrectToken);
     }
 
-
     @Test
-    public void test03userRedeemedCard() {
-        facade.redeemGiftCard(facade.getToken(),"mctastytriplebacon");
-        assertTrue(facade.getUserGiftCards().containsKey("mctastytriplebacon"));
+    public void test03userRedeemedCardCorrectly() {
+        assertTrue(facadeWithRedeemedCard().getUserGiftCards().get(CORRECT_GC_ID).isRedeemed());
     }
 
     @Test
     public void test04userCannotRedeemInvalidCard() {
         assertThrowsLike(
-                () -> facade.redeemGiftCard(facade.getToken(),"mctastytriple"),
+                () -> facade.redeemGiftCard(userToken,"codigoEquivocado"),
                 Facade.giftCardNotFound
         );
     }
 
     @Test
-    public void test05buyUsingAreedemedGiftCard() {
-        facade.redeemGiftCard(facade.getToken(),"mctastytriplebacon").buyProduct("mctastytriplebacon",80,"McDonalds", facade.getToken());
-        assertEquals(20, facade.getUserGiftCards().get("mctastytriplebacon"));
+    public void test05buyUsingRedeemedGiftCard() {
+        facade.redeemGiftCard(userToken,CORRECT_GC_ID).merchantCharge("McDonalds",CORRECT_GC_ID, 80);
+        assertEquals(20, facade.balanceOf(userToken, CORRECT_GC_ID));
     }
 
     @Test
     public void test06cannotBuyUsingAnUnknownMerchant() {
         assertThrowsLike(
-                () -> facade.redeemGiftCard(facade.getToken(),"mctastytriplebacon").
-                        buyProduct("mctastytriplebacon",80,"Burger King", facade.getToken()),
+                () -> chargedFacade(80, MERCHANT_UNKNOWN),
                 Facade.merchantNotFound
         );
     }
 
     @Test
     public void test07notEnoughFunds() {
-        facade.redeemGiftCard(facade.getToken(),"mctastytriplebacon")
-                .buyProduct("mctastytriplebacon",80,"McDonalds", facade.getToken());
         assertThrowsLike(
-                () -> facade.buyProduct("mctastytriplebacon",80,"McDonalds", facade.getToken()),
-                Facade.notEnoughMoneyToBuy
+                () -> chargedFacade(120, MERCHANT_MCD),
+                GiftCard.insufficientBalance
         );
     }
 
+
     @Test
-    public void test08purchaseDetailsAreWritten() {
-        facade.redeemGiftCard(facade.getToken(),"mctastytriplebacon")
-                .buyProduct("mctastytriplebacon",80,"McDonalds", facade.getToken());
-        assertTrue(!facade.getLogGiftCardMovements().get("mctastytriplebacon").isEmpty());
+    public void test08merchantChargeIsRecordedAsMovement() {
+        List<GiftCardMovements> movements = chargedFacade(80, MERCHANT_MCD)
+                .movementsOf(userToken, CORRECT_GC_ID);
+
+        assertEquals(1, movements.size());
+        assertEquals(MERCHANT_MCD, movements.getFirst().getCommerce());
+        assertEquals(80, movements.getFirst().getExpense());
     }
 
     @Test
-    public void test09logginInMultipleTimesJustChangesTheTokenAndUpdatesTheSession() {
-        Clock myClock = new Clock() {
-            private LocalDateTime current = LocalDateTime.now();
+    public void test09loggingInTwiceGeneratesNewTokenAndSession() {
+        Clock clock = new Clock(LocalDateTime.now());
+        Facade localFacade = newFacade(clock);
 
-            @Override
-            public LocalDateTime now() {
-                LocalDateTime toReturn = current;
-                current = current.plusMinutes(1); // siempre avanza 1 minuto
-                return toReturn;
-            }
-        };
+        String firstToken = loginAndGetToken(localFacade, "Funny", "Valentine");
+        LocalDateTime firstCreationTime = localFacade.getSession().getTokenCreationTime();
 
-        Facade facade = facade(myClock);
+        clock.advanceMinutes(1);
+        String secondToken = loginAndGetToken(localFacade, "Funny", "Valentine");
+        LocalDateTime secondCreationTime = localFacade.getSession().getTokenCreationTime();
 
-        facade.login("Funny", "Valentine");
-        String firstToken = facade.getToken();
-        LocalDateTime firstCreationTime = facade.getSession().getCreationTime();
-
-        facade.login("Funny", "Valentine");
-        String secondToken = facade.getToken();
-        LocalDateTime secondCreationTime = facade.getSession().getCreationTime();
-
-        assertNotEquals(secondToken, firstToken);
-        assertNotEquals(secondCreationTime, firstCreationTime);
+        assertNotEquals(firstToken, secondToken, tokenShouldChange);
+        assertNotEquals(firstCreationTime, secondCreationTime, sessionTimeShouldChange);
     }
 
-    //Test checkear saldo
+    private String loginAndGetToken(Facade facade, String user, String pass) {
+        facade.login(user, pass);
+        return facade.getToken();
+    }
 
-    //Gastar y checkear que el saldo se actualizo
+    private Facade chargedFacade(Integer amount, String merchantId) {
+        return facadeWithRedeemedCard().merchantCharge(merchantId, CORRECT_GC_ID, amount);
+    }
 
-    //Fijarse que la tarjeta tiene el map con la lista de sus gastos
+    private Facade facadeWithRedeemedCard() {
+        return facade.redeemGiftCard(userToken, CORRECT_GC_ID);
+    }
 
-    //Movimientos se encarga de las acciones de la gc
-
-    //Hacer para multiples
 
     private void assertThrowsLike(Executable runnable, String expectedMessage) {
         assertEquals(
@@ -126,11 +128,15 @@ public class FacadeTest {
         );
     }
 
-    private Facade facade() {
-        return new Facade(merchants,giftCards,users, new Clock()).login("Funny","Valentine");
+    private Facade newFacade() {
+        return new Facade(merchants,validGiftCards(),users, new Clock()).login("Funny","Valentine");
     }
-    private Facade facade(Clock clock) {
-        return new Facade(merchants,giftCards,users, clock).login("Funny","Valentine");
+    private Facade newFacade(Clock clock) {
+        return new Facade(merchants,validGiftCards(),users, clock).login("Funny","Valentine");
+    }
+
+    private Map<String, GiftCard> validGiftCards() {
+        return Map.of(CORRECT_GC_ID, new GiftCard(CORRECT_GC_ID, 100));
     }
 }
 

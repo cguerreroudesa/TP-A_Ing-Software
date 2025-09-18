@@ -7,6 +7,7 @@ public class Facade {
     public static String giftCardNotRedeemed = "Giftcard not redeemed yet";
     public static String invalidUsernameOrPassword = "Invalid username or password";
     public static String giftCardNotFound = "Gift card not found";
+    public static String incorrectToken = "Incorrect token";
 
     private Map<String, GiftCard> giftCards;
     private Map<String, String> validUsers;
@@ -47,34 +48,23 @@ public class Facade {
         return this;
     }
 
-//    public void buyProduct(String gcId, int price, String merchantId, String token){
-//        assertGiftCardRedeemed(gcId);
-//        assertTokenIsValid(token);
-//        assertMerchanExists(merchantId);
-//
-//        Integer finalBalance = userGiftCards.get(gcId) - price;
-//        assertEnoughMoneyToBuy(finalBalance);
-//        userGiftCards.put(gcId, finalBalance);
-//        logGiftCardMovements.get(gcId).add(new GiftCardMovements(price,clock.now(),merchantId));
-//    }
 
     //Pongo esto en vez de buy porque para la compra no hace falta el token y eso. Solo el id de merchant y giftcard
-    public void merchantCharge(String merchantId, String gcId, int amount){
+    public Facade merchantCharge(String merchantId, String gcId, int amount){
         assertMerchantExists(merchantId);
         requireUserGiftCard(gcId).decreaseBalance(amount);
 
         logGiftCardMovements.get(gcId).add(new GiftCardMovements(amount, clock.now(), merchantId));
+        return this;
     }
 
 
     public int balanceOf(String token, String gcId) {
-        session.ensureValid(token);
-        return requireUserGiftCard(gcId).getBalance();
+        return validatedUserGiftCard(token, gcId).getBalance();
     }
 
     public List<GiftCardMovements> movementsOf(String token, String gcId){
-        session.ensureValid(token);
-        requireUserGiftCard(gcId);
+        validatedUserGiftCard(token, gcId);
         return logGiftCardMovements.get(gcId);
     }
 
@@ -117,6 +107,10 @@ public class Facade {
         }
     }
 
+    private GiftCard validatedUserGiftCard(String token, String gcId) {
+        session.ensureValid(token);
+        return requireUserGiftCard(gcId);
+    }
 
     public Map<String, GiftCard> getUserGiftCards() {
         return userGiftCards;
