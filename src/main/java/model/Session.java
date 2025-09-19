@@ -8,8 +8,10 @@ public class Session {
     String token;
     Clock clock;
     LocalDateTime tokenCreationTime;
-    public static String incorrectToken = "Token incorrecto";
+    public static String incorrectToken = "Incorrect Token";
     public static String tokenExpired = "Token expired";
+    public static String sessionExpired = "Your session is expired please login again";
+
 
     public Session(Clock clock) {
         this.tokenCreationTime = clock.now();
@@ -28,13 +30,13 @@ public class Session {
     public LocalDateTime getTokenCreationTime() {return this.tokenCreationTime;}
 
     public void ensureValid(String token) {
-        validateToken(token);
         validateExpiration();
+        validateToken(token);
     }
 
     private void validateExpiration() {
         if (isExpired()){
-            throw new RuntimeException(tokenExpired);
+            throw new RuntimeException(sessionExpired);
         }
     }
 

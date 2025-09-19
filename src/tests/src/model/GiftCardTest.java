@@ -5,7 +5,7 @@ import org.junit.jupiter.api.function.Executable;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class GiftCardTest {
+public class GiftCardTest implements AssertThrowsLike{
     public static String BalanceChangedAfterFail = "Balance should remain unchanged after failure";
 
     @Test
@@ -51,14 +51,6 @@ public class GiftCardTest {
         assertThrowsLike(() -> newGiftCard()
                         .decreaseBalance(130),
                 GiftCard.giftCardNotRedeemed);
-    }
-
-
-    private void assertThrowsLike(Executable runnable, String expectedMessage) {
-        assertEquals(
-                expectedMessage,
-                assertThrows(RuntimeException.class, runnable).getMessage()
-        );
     }
 
     private GiftCard newGiftCard() {

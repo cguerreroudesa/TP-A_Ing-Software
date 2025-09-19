@@ -1,10 +1,17 @@
 package model;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 public class GiftCard {
     private String id;
     private int initialBalance;
     private int currentBalance;
     private boolean redeemed;
+    private List<GiftCardMovements> logGiftCardMovements;
+
 
     public static String giftCardNotRedeemed = "Giftcard not redeemed";
     public static String giftCardRedeemed = "Giftcard already redeemed";
@@ -16,6 +23,7 @@ public class GiftCard {
         this.initialBalance = balance;
         this.currentBalance = balance;
         this.redeemed = false;
+        this.logGiftCardMovements = new ArrayList<>();
     }
 
     public String getId(){ return id; }
@@ -39,4 +47,11 @@ public class GiftCard {
         return this;
     }
 
+    public void logMovement(int amount, LocalDateTime now, String merchantId) {
+        logGiftCardMovements.add(new GiftCardMovements(amount, now, merchantId));
+    }
+
+    public List<GiftCardMovements> getLogGiftCardMovements() {
+        return logGiftCardMovements;
+    }
 }

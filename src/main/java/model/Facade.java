@@ -7,21 +7,18 @@ public class Facade {
     public static String giftCardNotRedeemed = "Giftcard not redeemed yet";
     public static String invalidUsernameOrPassword = "Invalid username or password";
     public static String giftCardNotFound = "Gift card not found";
-    public static String incorrectToken = "Incorrect token";
 
-    private Map<String, GiftCard> giftCards;
+    private List<GiftCard> giftCards;
     private Map<String, String> validUsers;
-    private Map<String, List<GiftCardMovements>> logGiftCardMovements;
-    private Map<String, GiftCard> userGiftCards;
+    private List<GiftCard> userGiftCards;
     private List<String> merchants;
 
     private Session session;
     private String token;
     private Clock clock;
 
-    public Facade(List<String> merchants, Map<String, GiftCard> giftCards, Map<String, String> validUsers, Clock clock) {
-        this.userGiftCards = new HashMap<>();
-        this.logGiftCardMovements = new HashMap<>();
+    public Facade(List<String> merchants, List<GiftCard> giftCards, Map<String, String> validUsers, Clock clock) {
+        this.userGiftCards = new ArrayList<>();
         this.merchants = merchants;
         this.giftCards = giftCards;
         this.validUsers = validUsers;
@@ -42,9 +39,7 @@ public class Facade {
     public Facade redeemGiftCard(String token, String gcId) {
         session.ensureValid(token);
 
-        userGiftCards.put(gcId, requireGiftCard(gcId).redeem());
-        logGiftCardMovements.put(gcId, new ArrayList<>());
-
+        userGiftCards.add(findGiftCard(gcId).redeem());
         return this;
     }
 
@@ -52,9 +47,8 @@ public class Facade {
     //Pongo esto en vez de buy porque para la compra no hace falta el token y eso. Solo el id de merchant y giftcard
     public Facade merchantCharge(String merchantId, String gcId, int amount){
         assertMerchantExists(merchantId);
-        requireUserGiftCard(gcId).decreaseBalance(amount);
-
-        logGiftCardMovements.get(gcId).add(new GiftCardMovements(amount, clock.now(), merchantId));
+        session.ensureValid(token);
+        findUserGiftCard(gcId).decreaseBalance(amount).logMovement(amount,clock.now(),merchantId);
         return this;
     }
 
@@ -64,8 +58,7 @@ public class Facade {
     }
 
     public List<GiftCardMovements> movementsOf(String token, String gcId){
-        validatedUserGiftCard(token, gcId);
-        return logGiftCardMovements.get(gcId);
+        return validatedUserGiftCard(token, gcId).getLogGiftCardMovements();
     }
 
     private void assertMerchantExists(String merchantId) {
@@ -74,30 +67,20 @@ public class Facade {
         }
     }
 
-    private void assertGiftCardRedeemed(String gcId) {
-        if ( !userGiftCards.containsKey(gcId) ) {
-            throw new RuntimeException(giftCardNotRedeemed);
-        }
-    }
 
-    private void assertTokenIsValid(String token) {
-        session.ensureValid(token);
-    }
-
-    private GiftCard requireGiftCard(String gcId) {
+    private GiftCard findGiftCard(String gcId) {
         return obtainFrom(giftCards, gcId, giftCardNotFound);
     }
 
-    private GiftCard requireUserGiftCard(String gcId) {
+    private GiftCard findUserGiftCard(String gcId) {
         return obtainFrom(userGiftCards, gcId, giftCardNotRedeemed);
     }
 
-    private GiftCard obtainFrom(Map<String, GiftCard> source, String gcId, String errorMessage) {
-        GiftCard gc = source.get(gcId);
-        if (gc == null) {
-            throw new RuntimeException(errorMessage);
-        }
-        return gc;
+    private GiftCard obtainFrom(List<GiftCard> source, String gcId, String errorMessage) {
+        return source.stream()
+                .filter(giftCard -> giftCard.getId().equals(gcId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException(errorMessage));
     }
 
 
@@ -109,17 +92,12 @@ public class Facade {
 
     private GiftCard validatedUserGiftCard(String token, String gcId) {
         session.ensureValid(token);
-        return requireUserGiftCard(gcId);
+        return findUserGiftCard(gcId);
     }
 
-    public Map<String, GiftCard> getUserGiftCards() {
+    public List<GiftCard> getUserGiftCards() {
         return userGiftCards;
     }
-
-    public Map<String, List<GiftCardMovements>> getLogGiftCardMovements() {
-        return logGiftCardMovements;
-    }
-
 
     public String getToken() {
         return this.token;

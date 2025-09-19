@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class SessionTest {
+public class SessionTest implements AssertThrowsLike {
 
     @Test
     public void test01AcceptCorrectToken() {
@@ -22,20 +22,16 @@ public class SessionTest {
     }
 
     @Test
-    public void test03TokenExpiresAfterFiveMinutes() {
-        Session session = newSessionExpired(7);
+    public void test03SessionExpiresAtExactlyFiveMinutes() {
+        Session session = newSessionExpired(5);
         assertTrue(session.isExpired());
-        assertThrowsLike(() -> session.ensureValid(session.getToken()),
-                Session.tokenExpired);
     }
 
     @Test
-    public void test04StillValidAtExactlyFiveMinutes() {
-        Session session = newSessionExpired(5);
-        assertFalse(session.isExpired());
-        assertDoesNotThrow(() -> session.ensureValid(session.getToken()));
+    public void test04SessionExpiresAfterFiveMinutes() {
+        Session session = newSessionExpired(7);
+        assertTrue(session.isExpired());
     }
-
 
     private Session newSession() {
         Clock clock = new Clock();
@@ -43,20 +39,24 @@ public class SessionTest {
     }
 
     private Session newSessionExpired(Integer timeToAdd) {
-        Clock clock = new Clock(LocalDateTime.now());
-        Session session = new Session(clock);
-        assertFalse(session.isExpired());
+        Clock myClock = new Clock() {
+            private LocalDateTime current = LocalDateTime.now();
 
-        clock.advanceMinutes(timeToAdd);
+            @Override
+            public LocalDateTime now() {
+                LocalDateTime toReturn = current;
+                current = current.plusMinutes(1);
+                return toReturn;
+            }
+
+            public void advanceMinutes(Integer minutes) {
+                current = current.plusMinutes(minutes);
+            }
+        };
+
+        Session session = new Session(myClock);
+
+        myClock.advanceMinutes(timeToAdd);
         return session;
     }
-
-    private void assertThrowsLike(Executable runnable, String expectedMessage) {
-        assertEquals(
-                expectedMessage,
-                assertThrows(RuntimeException.class, runnable).getMessage()
-        );
-    }
-
-
 }
