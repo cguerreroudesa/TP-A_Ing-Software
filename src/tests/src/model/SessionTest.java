@@ -12,12 +12,12 @@ public class SessionTest implements AssertThrowsLike {
     @Test
     public void test01AcceptCorrectToken() {
         Session session = newSession();
-        assertDoesNotThrow(() -> session.ensureValid(session.getToken()));
+        assertDoesNotThrow(() -> session.validateToken(session.getToken()));
     }
 
     @Test
     public void test02RejectsWrongToken() {
-        assertThrowsLike(() -> newSession().ensureValid("wrongToken"),
+        assertThrowsLike(() -> newSession().validateToken("wrongToken"),
                 Session.incorrectToken);
     }
 

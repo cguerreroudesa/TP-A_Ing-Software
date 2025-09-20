@@ -29,18 +29,14 @@ public class Session {
 
     public LocalDateTime getTokenCreationTime() {return this.tokenCreationTime;}
 
-    public void ensureValid(String token) {
-        validateExpiration();
-        validateToken(token);
-    }
 
-    private void validateExpiration() {
+    public void validateExpiration() {
         if (isExpired()){
             throw new RuntimeException(sessionExpired);
         }
     }
 
-    private void validateToken(String token) {
+    public void validateToken(String token) {
         if (!Objects.equals(this.token, token)) {
             throw new RuntimeException(incorrectToken);
         }

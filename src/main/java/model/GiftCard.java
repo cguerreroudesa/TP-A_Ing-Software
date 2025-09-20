@@ -7,10 +7,10 @@ import java.util.Map;
 
 public class GiftCard {
     private String id;
-    private int initialBalance;
     private int currentBalance;
     private boolean redeemed;
     private List<GiftCardMovements> logGiftCardMovements;
+    private String owner;
 
 
     public static String giftCardNotRedeemed = "Giftcard not redeemed";
@@ -20,7 +20,6 @@ public class GiftCard {
 
     public GiftCard(String id, int balance){
         this.id = id;
-        this.initialBalance = balance;
         this.currentBalance = balance;
         this.redeemed = false;
         this.logGiftCardMovements = new ArrayList<>();
@@ -53,5 +52,14 @@ public class GiftCard {
 
     public List<GiftCardMovements> getLogGiftCardMovements() {
         return logGiftCardMovements;
+    }
+
+    public GiftCard setOwner(String owner) {
+        this.owner = owner;
+        return this;
+    }
+
+    public String getOwner() {
+        return owner;
     }
 }

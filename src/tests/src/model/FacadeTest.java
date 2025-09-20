@@ -25,67 +25,69 @@ public class FacadeTest implements AssertThrowsLike{
     @BeforeEach
     public void setUp() {
         facade = loggedInFacade();
-        userToken = facade.getToken();
+        userToken = facade.getUserSession("Funny").getToken();
     }
 
 
     @Test
-    public void test01userIsInvalid() {
-        assertThrowsLike(() -> facade.login("Funny","d4c"),
+    public void test01userOrPasswordAreInvalid() {
+        assertThrowsLike(() -> facade.login("Funny","InvalidPassword"),
+                Facade.invalidUsernameOrPassword);
+        assertThrowsLike(() -> facade.login("invalidUser","Valentine"),
                 Facade.invalidUsernameOrPassword);
     }
 
     @Test
     public void test02tokenIsInvalid() {
-        assertThrowsLike(() -> facade.redeemGiftCard("tokenIncorrecto", correctGcId),
+        assertThrowsLike(() -> facade.redeemGiftCard("Funny","tokenIncorrecto", correctGcId),
                 Session.incorrectToken);
     }
 
     @Test
-    public void test03userRedeemedCardCorrectly() {
-        assertTrue(facadeWithRedeemedCard()
-                .getUserGiftCards()
-                .stream()
-                .filter(gc -> gc.getId().equals(correctGcId))
-                .findFirst()
-                .get().isRedeemed());
+    public void test03sessionIsActiveAfterLoginIn() {
+        assertFalse(facade.getUserSession("Funny").isExpired());
     }
 
     @Test
-    public void test04userCannotRedeemInvalidCard() {
+    public void test04userRedeemedCardCorrectly() {
+        assertTrue(facadeWithRedeemedCard().findGiftCard(correctGcId).isRedeemed());
+    }
+
+    @Test
+    public void test05userCannotRedeemInvalidCard() {
         assertThrowsLike(
-                () -> facade.redeemGiftCard(userToken,"invalidId"),
+                () -> facade.redeemGiftCard("Funny",userToken,"invalidId"),
                 Facade.giftCardNotFound
         );
     }
 
     @Test
-    public void test05buyUsingRedeemedGiftCard() {
-        facade.redeemGiftCard(userToken,correctGcId).merchantCharge(merchantId,correctGcId, 80);
-        assertEquals(20, facade.balanceOf(userToken, correctGcId));
+    public void test06buyUsingRedeemedGiftCard() {
+        facade.redeemGiftCard("Funny",userToken,correctGcId).checkOut(merchantId,correctGcId, 80);
+        assertEquals(20, facade.balanceOf("Funny",userToken, correctGcId));
     }
 
     @Test
-    public void test06cannotBuyUsingAnUnknownMerchant() {
+    public void test07cannotBuyUsingAnUnknownMerchant() {
         assertThrowsLike(
-                () -> chargedFacade(80, "invalidMerchantId"),
+                () -> checkedOutFacade( 80, "invalidMerchantId"),
                 Facade.merchantNotFound
         );
     }
 
     @Test
-    public void test07notEnoughFunds() {
+    public void test08notEnoughFunds() {
         assertThrowsLike(
-                () -> chargedFacade(120, merchantId),
+                () -> checkedOutFacade(120, merchantId),
                 GiftCard.insufficientBalance
         );
     }
 
 
     @Test
-    public void test08merchantChargeIsRecordedAsMovement() {
-        List<GiftCardMovements> movements = chargedFacade(80, merchantId)
-                .movementsOf(userToken, correctGcId);
+    public void test09checkoutIsRecordedAsMovement() {
+        List<GiftCardMovements> movements = checkedOutFacade(80, merchantId)
+                .movementsOf("Funny",userToken, correctGcId);
 
         assertEquals(1, movements.size());
         assertEquals(merchantId, movements.getFirst().getCommerce());
@@ -93,35 +95,96 @@ public class FacadeTest implements AssertThrowsLike{
     }
 
     @Test
-    public void test09logginInMultipleTimesJustChangesTheTokenAndUpdatesTheSession() {
-        Clock myClock = new Clock() {
-            private LocalDateTime current = LocalDateTime.now();
+    public void test10checkoutIncorrectlyIsNotRecordedAsMovementAndBalanceDoesNotChange() {
+        assertThrowsLike(() -> checkedOutFacade(120, merchantId),GiftCard.insufficientBalance);
+        assertEquals(0, facade.movementsOf("Funny",userToken, correctGcId).size());
+        assertEquals(100, facade.balanceOf("Funny",userToken, correctGcId));
+    }
 
-            @Override
-            public LocalDateTime now() {
-                LocalDateTime toReturn = current;
-                current = current.plusMinutes(1); // siempre avanza 1 minuto
-                return toReturn;
-            }
-        };
-
+    @Test
+    public void test11loginInMultipleTimesChangesTheTokenAndUpdatesTheSession() {
+        Clock myClock = customClock();
         Facade facade = loggedInFacade(myClock);
 
-        facade.login("Funny", "Valentine");
-        String firstToken = facade.getToken();
-        LocalDateTime firstCreationTime = facade.getSession().getTokenCreationTime();
+        Session session = facade.getUserSession("Funny");
+        String firstToken = session.getToken();
+        LocalDateTime firstCreationTime = session.getTokenCreationTime();
 
         facade.login("Funny", "Valentine");
-        String secondToken = facade.getToken();
-        LocalDateTime secondCreationTime = facade.getSession().getTokenCreationTime();
+        Session secondSession = facade.getUserSession("Funny");
+        String secondToken = secondSession.getToken();
+        LocalDateTime secondCreationTime = secondSession.getTokenCreationTime();
 
         assertNotEquals(secondToken, firstToken);
         assertNotEquals(secondCreationTime, firstCreationTime);
     }
 
     @Test
-    public void test10cannotReedemIfSessionExpired() {
-        Clock myClock = new Clock() {
+    public void test12cannotRedeemGiftCardOrCheckGiftCardStatusIfSessionExpired() {
+        Clock myClock = customClock();
+        Facade expiredSessionFacade = loggedInFacade(myClock);
+        expiredSessionFacade.redeemGiftCard("Funny",expiredSessionFacade.getUserSession("Funny").getToken(), correctGcId);
+        myClock.advanceMinutes(6);
+        assertThrowsLike(()-> expiredSessionFacade.redeemGiftCard("Funny",expiredSessionFacade.getUserSession("Funny").getToken(),"caramelMacchiato"), Session.sessionExpired);
+        assertThrowsLike(()-> expiredSessionFacade.balanceOf("Funny",expiredSessionFacade.getUserSession("Funny").getToken(),correctGcId), Session.sessionExpired);
+        assertThrowsLike(()-> expiredSessionFacade.movementsOf("Funny",expiredSessionFacade.getUserSession("Funny").getToken(),correctGcId), Session.sessionExpired);
+    }
+
+    @Test
+    public void test13canBuyEvenIfSessionExpired() {
+        Clock myClock = customClock();
+        Facade expiredSessionFacade = loggedInFacade(myClock);
+        expiredSessionFacade.redeemGiftCard("Funny",expiredSessionFacade.getUserSession("Funny").getToken(), correctGcId);
+        myClock.advanceMinutes(6);
+
+        expiredSessionFacade.checkOut( merchantId ,correctGcId,80);
+        expiredSessionFacade.login("Funny","Valentine");
+        assertEquals(20, expiredSessionFacade.balanceOf("Funny",expiredSessionFacade.getUserSession("Funny").getToken(),correctGcId));
+    }
+
+    @Test
+    public void test14multipleUsersHaveDifferentSessions() {
+        facade.login("Funny","Valentine");
+        facade.login("Johnny", "Joestar");
+
+        assertNotEquals(facade.getUserSession("Funny").getToken(), facade.getUserSession("Johnny").getToken());
+    }
+
+    @Test
+    public void test15UserCanSpendInPersonalGiftCard() {
+        facade.login("Funny","Valentine");
+        facade.login("Johnny", "Joestar");
+        facade.redeemGiftCard("Funny",facade.getUserSession("Funny").getToken(),correctGcId);
+        facade.redeemGiftCard("Johnny",facade.getUserSession("Johnny").getToken(),"caramelMacchiato");
+        facade.checkOut(merchantId ,correctGcId,80);
+        facade.checkOut("Starbucks" ,"caramelMacchiato",70);
+
+        assertNotEquals(facade.balanceOf("Funny",facade.getUserSession("Funny").getToken(),correctGcId),
+                facade.balanceOf("Johnny",facade.getUserSession("Johnny").getToken(),"caramelMacchiato"));
+    }
+
+    @Test
+    public void test16CannotRedeemSameGiftCard() {
+        facade.login("Funny","Valentine");
+        facade.login("Johnny", "Joestar");
+        facade.redeemGiftCard("Funny",facade.getUserSession("Funny").getToken(),correctGcId);
+        assertThrowsLike(() ->facade.redeemGiftCard("Johnny",facade.getUserSession("Johnny").getToken(),correctGcId), GiftCard.giftCardRedeemed);
+    }
+
+    @Test
+    public void test17cannotCheckGiftCardOfAnotherUser() {
+        Facade reedemedByFunny = facadeWithRedeemedCard();
+        reedemedByFunny.login("Johnny", "Joestar");
+
+        assertThrowsLike(()-> reedemedByFunny.balanceOf("Johnny",userToken,correctGcId), Facade.userDoesNotOwnGiftCard);
+        assertThrowsLike(()-> reedemedByFunny.movementsOf("Johnny",userToken,correctGcId),  Facade.userDoesNotOwnGiftCard);
+    }
+
+
+
+
+    private Clock customClock(){
+        return new Clock() {
             private LocalDateTime current = LocalDateTime.now();
 
             @Override
@@ -135,20 +198,15 @@ public class FacadeTest implements AssertThrowsLike{
                 current = current.plusMinutes(minutes);
             }
         };
-
-        Facade newFacade = loggedInFacade(myClock);
-        myClock.advanceMinutes(6);
-        assertThrowsLike(()->newFacade.redeemGiftCard(userToken,correctGcId), Session.sessionExpired);
-
     }
 
 
-    private Facade chargedFacade(Integer amount, String merchantId) {
-        return facadeWithRedeemedCard().merchantCharge(merchantId, correctGcId, amount);
+    private Facade checkedOutFacade(Integer amount, String merchantId) {
+        return facadeWithRedeemedCard().checkOut(merchantId, correctGcId, amount);
     }
 
     private Facade facadeWithRedeemedCard() {
-        return facade.redeemGiftCard(userToken, correctGcId);
+        return facade.redeemGiftCard("Funny",userToken, correctGcId);
     }
 
     private Facade loggedInFacade() {
@@ -159,7 +217,7 @@ public class FacadeTest implements AssertThrowsLike{
     }
 
     private List<GiftCard> validGiftCards() {
-        return List.of(new GiftCard(correctGcId, 100));
+        return List.of(new GiftCard(correctGcId, 100),new GiftCard("caramelMacchiato", 100));
     }
 }
 

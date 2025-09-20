@@ -3,6 +3,7 @@ package model;
 import java.util.*;
 
 public class Facade {
+    public static String userDoesNotOwnGiftCard = "Gift Card is not owned by user";
     public static String merchantNotFound = "Merchant not found";
     public static String giftCardNotRedeemed = "Giftcard not redeemed yet";
     public static String invalidUsernameOrPassword = "Invalid username or password";
@@ -10,19 +11,16 @@ public class Facade {
 
     private List<GiftCard> giftCards;
     private Map<String, String> validUsers;
-    private List<GiftCard> userGiftCards;
     private List<String> merchants;
-
-    private Session session;
-    private String token;
+    private Map<String,Session> sessions;
     private Clock clock;
 
     public Facade(List<String> merchants, List<GiftCard> giftCards, Map<String, String> validUsers, Clock clock) {
-        this.userGiftCards = new ArrayList<>();
         this.merchants = merchants;
         this.giftCards = giftCards;
         this.validUsers = validUsers;
         this.clock = clock;
+        this.sessions = new HashMap<>();
     }
 
     public Session generateSession(){
@@ -31,34 +29,33 @@ public class Facade {
 
     public Facade login(String username, String password){
         checkValidUser(username, password);
-        this.session = generateSession();
-        this.token = this.session.getToken();
+        this.sessions.put(username,generateSession());
         return this;
     }
 
-    public Facade redeemGiftCard(String token, String gcId) {
-        session.ensureValid(token);
+    public Facade redeemGiftCard(String username,String token, String gcId) {
+        validateSession(username, token);
+        findGiftCard(gcId).setOwner(username).redeem();
 
-        userGiftCards.add(findGiftCard(gcId).redeem());
         return this;
     }
 
 
-    //Pongo esto en vez de buy porque para la compra no hace falta el token y eso. Solo el id de merchant y giftcard
-    public Facade merchantCharge(String merchantId, String gcId, int amount){
+    public Facade checkOut(String merchantId, String gcId, int amount){
         assertMerchantExists(merchantId);
-        session.ensureValid(token);
-        findUserGiftCard(gcId).decreaseBalance(amount).logMovement(amount,clock.now(),merchantId);
+        findGiftCard(gcId).decreaseBalance(amount).logMovement(amount,clock.now(),merchantId);
         return this;
     }
 
 
-    public int balanceOf(String token, String gcId) {
-        return validatedUserGiftCard(token, gcId).getBalance();
+    public int balanceOf(String username, String token, String gcId) {
+        validatedUserGiftCard(username,token, gcId);
+        return findGiftCard(gcId).getBalance();
     }
 
-    public List<GiftCardMovements> movementsOf(String token, String gcId){
-        return validatedUserGiftCard(token, gcId).getLogGiftCardMovements();
+    public List<GiftCardMovements> movementsOf(String username, String token, String gcId){
+        validatedUserGiftCard(username,token, gcId);
+        return findGiftCard(gcId).getLogGiftCardMovements();
     }
 
     private void assertMerchantExists(String merchantId) {
@@ -67,22 +64,12 @@ public class Facade {
         }
     }
 
-
-    private GiftCard findGiftCard(String gcId) {
-        return obtainFrom(giftCards, gcId, giftCardNotFound);
-    }
-
-    private GiftCard findUserGiftCard(String gcId) {
-        return obtainFrom(userGiftCards, gcId, giftCardNotRedeemed);
-    }
-
-    private GiftCard obtainFrom(List<GiftCard> source, String gcId, String errorMessage) {
-        return source.stream()
+    public GiftCard findGiftCard(String gcId) {
+        return giftCards.stream()
                 .filter(giftCard -> giftCard.getId().equals(gcId))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException(errorMessage));
+                .orElseThrow(() -> new RuntimeException(giftCardNotFound));
     }
-
 
     private void checkValidUser(String user, String pass ) {
         if ( !pass.equals( validUsers.get( user ) ) ) {
@@ -90,25 +77,24 @@ public class Facade {
         }
     }
 
-    private GiftCard validatedUserGiftCard(String token, String gcId) {
-        session.ensureValid(token);
-        return findUserGiftCard(gcId);
+    private void assertUserOwnsTheGiftCard(String username, String gcId) {
+        if (!Objects.equals(findGiftCard(gcId).getOwner(), username)){
+            throw new RuntimeException(userDoesNotOwnGiftCard);
+        }
     }
 
-    public List<GiftCard> getUserGiftCards() {
-        return userGiftCards;
+    private void validatedUserGiftCard(String username,String token, String gcId) {
+        assertUserOwnsTheGiftCard(username, gcId);
+        validateSession(username, token);
     }
 
-    public String getToken() {
-        return this.token;
+    private void validateSession(String username, String token) {
+        sessions.get(username).validateExpiration();
+        sessions.get(username).validateToken(token);
     }
 
-    public Session getSession() {
-        return this.session;
-    }
-
-    public Clock getClock() {
-        return this.clock;
+    public Session getUserSession(String username) {
+        return this.sessions.get(username);
     }
 //    usuario y contraseña
 //    Consultar saldo
