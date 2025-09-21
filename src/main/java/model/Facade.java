@@ -1,11 +1,13 @@
 package model;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 public class Facade {
     public static String userDoesNotOwnGiftCard = "Gift Card is not owned by user";
     public static String merchantNotFound = "Merchant not found";
-    public static String giftCardNotRedeemed = "Giftcard not redeemed yet";
+    public static String giftCardNotRedeemed = "Gift card not redeemed";
+    public static String giftCardRedeemed = "This gift card has already been redeemed";
     public static String invalidUsernameOrPassword = "Invalid username or password";
     public static String giftCardNotFound = "Gift card not found";
 
@@ -33,29 +35,41 @@ public class Facade {
         return this;
     }
 
+    public String loginAndGetToken(String username, String password){
+        checkValidUser(username, password);
+        Session s = generateSession();
+        this.sessions.put(username,s);
+        return s.getToken();
+    }
+
+
     public Facade redeemGiftCard(String username,String token, String gcId) {
         validateSession(username, token);
-        findGiftCard(gcId).setOwner(username).redeem();
-
+        findGiftCard(gcId).redeemFor(username);
         return this;
     }
 
 
-    public Facade checkOut(String merchantId, String gcId, int amount){
+    public void checkOut(String merchantId, String gcId, int amount){
         assertMerchantExists(merchantId);
-        findGiftCard(gcId).decreaseBalance(amount).logMovement(amount,clock.now(),merchantId);
-        return this;
+        GiftCard card = findGiftCard(gcId);
+
+        if(!card.isRedeemed()) throw new RuntimeException(giftCardNotRedeemed);
+
+        card.spend(amount,clock.now(),merchantId);
     }
 
 
     public int balanceOf(String username, String token, String gcId) {
-        validatedUserGiftCard(username,token, gcId);
-        return findGiftCard(gcId).getBalance();
+        return getOwnedCard(username,token, gcId).getBalance();
     }
 
     public List<GiftCardMovements> movementsOf(String username, String token, String gcId){
-        validatedUserGiftCard(username,token, gcId);
-        return findGiftCard(gcId).getLogGiftCardMovements();
+        return getOwnedCard(username,token, gcId).getLogGiftCardMovements();
+    }
+
+    public LocalDateTime getTokenCreationTimeOf(String username){
+        return getUserSession(username).getTokenCreationTime();
     }
 
     private void assertMerchantExists(String merchantId) {
@@ -71,33 +85,44 @@ public class Facade {
                 .orElseThrow(() -> new RuntimeException(giftCardNotFound));
     }
 
+    public boolean isCardRedeemed(String cardId) {
+        return findGiftCard(cardId).isRedeemed();
+    }
+
     private void checkValidUser(String user, String pass ) {
         if ( !pass.equals( validUsers.get( user ) ) ) {
             throw new RuntimeException(invalidUsernameOrPassword);
         }
     }
 
-    private void assertUserOwnsTheGiftCard(String username, String gcId) {
-        if (!Objects.equals(findGiftCard(gcId).getOwner(), username)){
-            throw new RuntimeException(userDoesNotOwnGiftCard);
-        }
+    private GiftCard assertUserOwnsTheGiftCard(String username, String gcId) {
+        GiftCard card = findGiftCard(gcId);
+        if (!card.isRedeemed()) throw new RuntimeException(giftCardNotRedeemed);
+        if (!Objects.equals(card.getOwner(), username)) throw new RuntimeException(userDoesNotOwnGiftCard);
+        return card;
     }
 
-    private void validatedUserGiftCard(String username,String token, String gcId) {
-        assertUserOwnsTheGiftCard(username, gcId);
+    private GiftCard getOwnedCard(String username, String token, String gcId) {
         validateSession(username, token);
+        return assertUserOwnsTheGiftCard(username, gcId);
     }
+
 
     private void validateSession(String username, String token) {
-        sessions.get(username).validateExpiration();
-        sessions.get(username).validateToken(token);
+        Session userSession = sessions.get(username);
+        if (userSession == null) throw new RuntimeException(invalidUsernameOrPassword);
+        userSession.validateExpiration();
+        userSession.validateToken(token);
     }
 
     public Session getUserSession(String username) {
         return this.sessions.get(username);
     }
-//    usuario y contraseña
-//    Consultar saldo
-//    Detalles de gastos de la gift card (log)
-//    Gastar
+
+    public String getUserTokenSession(String username) {
+        return this.sessions.get(username).getToken();
+    }
+
+
+
 }

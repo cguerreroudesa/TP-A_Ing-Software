@@ -1,18 +1,15 @@
 package model;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class Clock {
-    public LocalDate today() {
-        return LocalDate.now();
-    }
+    private LocalDateTime current = LocalDateTime.now();
 
     public LocalDateTime now() {
-        return LocalDateTime.now();
+        return current;
     }
-
-    public void advanceMinutes(Integer timeToAdd) {
-
+    public Clock advanceMinutes(Integer timeToAdd) {
+        current = current.plusMinutes(timeToAdd);
+        return this;
     }
 }

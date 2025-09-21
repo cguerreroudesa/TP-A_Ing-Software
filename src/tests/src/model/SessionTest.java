@@ -1,10 +1,7 @@
 package model;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
-
 import java.time.LocalDateTime;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 public class SessionTest implements AssertThrowsLike {
@@ -44,13 +41,12 @@ public class SessionTest implements AssertThrowsLike {
 
             @Override
             public LocalDateTime now() {
-                LocalDateTime toReturn = current;
-                current = current.plusMinutes(1);
-                return toReturn;
+                return current;
             }
 
-            public void advanceMinutes(Integer minutes) {
+            public Clock advanceMinutes(Integer minutes) {
                 current = current.plusMinutes(minutes);
+                return this;
             }
         };
 

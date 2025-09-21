@@ -3,7 +3,6 @@ package model;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class GiftCard {
     private String id;
@@ -13,27 +12,30 @@ public class GiftCard {
     private String owner;
 
 
-    public static String giftCardNotRedeemed = "Giftcard not redeemed";
-    public static String giftCardRedeemed = "Giftcard already redeemed";
+    public static String giftCardNotRedeemed = "Gift card not redeemed";
+    public static String giftCardRedeemed = "This gift card has already been redeemed";
     public static String negativeAmountNotAllowed = "Amount must be positive";
     public static String insufficientBalance = "Insufficient balance";
+    public static String invalidMerchant = "Invalid merchant";
 
     public GiftCard(String id, int balance){
         this.id = id;
         this.currentBalance = balance;
         this.redeemed = false;
         this.logGiftCardMovements = new ArrayList<>();
+        this.owner = null;
     }
 
     public String getId(){ return id; }
     public int getBalance(){ return currentBalance; }
     public boolean isRedeemed(){ return redeemed; }
 
-    public GiftCard redeem(){
+    public GiftCard redeemFor(String username){
         if (redeemed){
             throw new RuntimeException(giftCardRedeemed);
         }
         redeemed = true;
+        this.owner = username;
         return this;
     }
 
@@ -50,13 +52,14 @@ public class GiftCard {
         logGiftCardMovements.add(new GiftCardMovements(amount, now, merchantId));
     }
 
-    public List<GiftCardMovements> getLogGiftCardMovements() {
-        return logGiftCardMovements;
+    public void spend(int amount, LocalDateTime now, String merchantId){
+        if (merchantId == null ) throw new RuntimeException(invalidMerchant);
+        decreaseBalance(amount);
+        logMovement(amount, now, merchantId);
     }
 
-    public GiftCard setOwner(String owner) {
-        this.owner = owner;
-        return this;
+    public List<GiftCardMovements> getLogGiftCardMovements() {
+        return List.copyOf(logGiftCardMovements);
     }
 
     public String getOwner() {

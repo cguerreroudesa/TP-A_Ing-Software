@@ -5,11 +5,10 @@ import java.util.Objects;
 import java.util.UUID;
 
 public class Session {
-    String token;
-    Clock clock;
-    LocalDateTime tokenCreationTime;
+    private String token;
+    private Clock clock;
+    private LocalDateTime tokenCreationTime;
     public static String incorrectToken = "Incorrect Token";
-    public static String tokenExpired = "Token expired";
     public static String sessionExpired = "Your session is expired please login again";
 
 
@@ -24,8 +23,6 @@ public class Session {
     }
 
     public String getToken() {return this.token;}
-
-    public Clock getClock() {return this.clock;}
 
     public LocalDateTime getTokenCreationTime() {return this.tokenCreationTime;}
 
@@ -43,7 +40,6 @@ public class Session {
     }
 
     public boolean isExpired() {
-        return this.tokenCreationTime.plusMinutes(5)
-                .isBefore(clock.now());
+        return !clock.now().isBefore(tokenCreationTime.plusMinutes(5));
     }
 }
