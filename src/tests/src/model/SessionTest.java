@@ -2,6 +2,9 @@ package model;
 
 import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
+import java.util.Iterator;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class SessionTest implements AssertThrowsLike {
@@ -20,13 +23,13 @@ public class SessionTest implements AssertThrowsLike {
 
     @Test
     public void test03SessionExpiresAtExactlyFiveMinutes() {
-        Session session = newSessionExpired(5);
+        Session session = newSessionExpired();
         assertTrue(session.isExpired());
     }
 
     @Test
     public void test04SessionExpiresAfterFiveMinutes() {
-        Session session = newSessionExpired(7);
+        Session session = newSessionExpired();
         assertTrue(session.isExpired());
     }
 
@@ -35,24 +38,17 @@ public class SessionTest implements AssertThrowsLike {
         return new Session(clock);
     }
 
-    private Session newSessionExpired(Integer timeToAdd) {
-        Clock myClock = new Clock() {
-            private LocalDateTime current = LocalDateTime.now();
-
-            @Override
+    private Session newSessionExpired() {
+        Clock myClock =  new Clock() {
+            Iterator<LocalDateTime> it = List.of( LocalDateTime.now(), LocalDateTime.now(), LocalDateTime.now().plusMinutes(6) ).iterator();
             public LocalDateTime now() {
-                return current;
-            }
-
-            public Clock advanceMinutes(Integer minutes) {
-                current = current.plusMinutes(minutes);
-                return this;
+                return it.next();
             }
         };
 
         Session session = new Session(myClock);
 
-        myClock.advanceMinutes(timeToAdd);
+        myClock.now();
         return session;
     }
 }

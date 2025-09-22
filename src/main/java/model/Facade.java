@@ -68,9 +68,6 @@ public class Facade {
         return getOwnedCard(username,token, gcId).getLogGiftCardMovements();
     }
 
-    public LocalDateTime getTokenCreationTimeOf(String username){
-        return getUserSession(username).getTokenCreationTime();
-    }
 
     private void assertMerchantExists(String merchantId) {
         if(!merchants.contains(merchantId)){

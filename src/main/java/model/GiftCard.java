@@ -59,7 +59,7 @@ public class GiftCard {
     }
 
     public List<GiftCardMovements> getLogGiftCardMovements() {
-        return List.copyOf(logGiftCardMovements);
+        return logGiftCardMovements;
     }
 
     public String getOwner() {

@@ -9,8 +9,8 @@ import static org.junit.jupiter.api.Assertions.*;
 public class GiftCardTest implements AssertThrowsLike{
     public static String BalanceChangedAfterFail = "Balance should remain unchanged after failure";
 
-    private static String merchantIdR1 = "Restaurante1";
-    public static final String merchantIdR2 = "Restaurante2";
+    private static String merchantIdR1 = "Restaurant1";
+    public static final String merchantIdR2 = "Restaurant2";
 
     public static String userFunny = "Funny";
 
@@ -73,7 +73,7 @@ public class GiftCardTest implements AssertThrowsLike{
         Clock clock = new Clock();
 
         LocalDateTime t1 = clock.now();
-        LocalDateTime t2 = clock.advanceMinutes(5).now();
+        LocalDateTime t2 = clock.now();
 
         card.logMovement(20, t1, merchantIdR1);
         card.logMovement(60, t2, merchantIdR2);
