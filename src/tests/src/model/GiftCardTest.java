@@ -9,30 +9,30 @@ import static org.junit.jupiter.api.Assertions.*;
 public class GiftCardTest implements AssertThrowsLike{
     public static String BalanceChangedAfterFail = "Balance should remain unchanged after failure";
 
-    private static String MERCHANT_ID_R1 = "Restaurante1";
-    public static final String MERCHANT_ID_R2 = "Restaurante2";
+    private static String merchantIdR1 = "Restaurante1";
+    public static final String merchantIdR2 = "Restaurante2";
 
-    public static String USER_FUNNY = "Funny";
+    public static String userFunny = "Funny";
 
 
     @Test
     public void test01RedeemGiftCardOnceSucceeds() {
         GiftCard giftCard = newGiftCard1();
         assertFalse(giftCard.isRedeemed());
-        giftCard.redeemFor(USER_FUNNY);
+        giftCard.redeemFor(userFunny);
         assertTrue(giftCard.isRedeemed());
     }
 
     @Test
     public void test02RedeemGiftCardTwiceFails() {
         GiftCard giftCard = newGiftCardRedeemed();
-        assertThrowsLike(() -> giftCard.redeemFor(USER_FUNNY), GiftCard.giftCardRedeemed);
+        assertThrowsLike(() -> giftCard.redeemFor(userFunny), GiftCard.giftCardRedeemed);
     }
 
     @Test
     public void test03DecreaseBalanceCorrectly() {
         assertEquals(70, newGiftCard1()
-                .redeemFor(USER_FUNNY)
+                .redeemFor(userFunny)
                 .decreaseBalance(30)
                 .getBalance());
     }
@@ -56,14 +56,14 @@ public class GiftCardTest implements AssertThrowsLike{
     @Test
     public void test06CantUseBeforeRedeem() {
         assertThrowsLike(() -> newGiftCard1()
-                        .spend(130, LocalDateTime.now(), MERCHANT_ID_R1),
+                        .spend(130, LocalDateTime.now(), merchantIdR1),
                 GiftCard.giftCardNotRedeemed);
     }
 
     @Test
     public void test07RedeemedGiftCardStartsWithCorrectBalance() {
         assertEquals(100, newGiftCard1()
-                    .redeemFor(USER_FUNNY)
+                    .redeemFor(userFunny)
                     .getBalance());
     }
 
@@ -75,13 +75,13 @@ public class GiftCardTest implements AssertThrowsLike{
         LocalDateTime t1 = clock.now();
         LocalDateTime t2 = clock.advanceMinutes(5).now();
 
-        card.logMovement(20, t1, MERCHANT_ID_R1 );
-        card.logMovement(60, t2, MERCHANT_ID_R2 );
+        card.logMovement(20, t1, merchantIdR1);
+        card.logMovement(60, t2, merchantIdR2);
 
         assertEquals(2, card.getLogGiftCardMovements().size());
 
-        checkMovement(card, 0, 20, MERCHANT_ID_R1, t1);
-        checkMovement(card, 1, 60, MERCHANT_ID_R2, t2);
+        checkMovement(card, 0, 20, merchantIdR1, t1);
+        checkMovement(card, 1, 60, merchantIdR2, t2);
     }
 
     @Test
@@ -105,7 +105,7 @@ public class GiftCardTest implements AssertThrowsLike{
     }
 
     private GiftCard newGiftCardRedeemed() {
-        return newGiftCard1().redeemFor(USER_FUNNY);
+        return newGiftCard1().redeemFor(userFunny);
     }
 
     private void assertFailsWithoutChangingBalance(GiftCard gc, Integer amount, String expectedMessage) {

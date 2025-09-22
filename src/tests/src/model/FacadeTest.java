@@ -10,19 +10,19 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class FacadeTest implements AssertThrowsLike{
-    public static String CARD1_ID = "caramelMacchiato";
-    public static String CARD2_ID = "mcTastyTripleBacon";
+    public static String cardD1Id = "caramelMacchiato";
+    public static String cardD2Id = "mcTastyTripleBacon";
 
-    private static String MERCHANT_ID_R1 = "Restaurant1";
-    public static final String MERCHANT_ID_R2 = "Restaurant2";
+    private static String merchantIdR1 = "Restaurant1";
+    public static final String merchantIdR2 = "Restaurant2";
 
-    public static String USER_FUNNY = "Funny";
-    public static String PASS_FUNNY = "Valentine";
-    public static String USER_JOHNNY = "Johnny";
-    public static String PASS_JOHNNY = "Joestar";
+    public static String userFunny = "Funny";
+    public static String passFunny = "Valentine";
+    public static String userJohnny = "Johnny";
+    public static String passJohnny = "Joestar";
 
-    private static Map<String, String> users = Map.of(USER_FUNNY, PASS_FUNNY, USER_JOHNNY, PASS_JOHNNY);
-    private static List<String> merchants = List.of(MERCHANT_ID_R1, MERCHANT_ID_R2);
+    private static Map<String, String> users = Map.of(userFunny, passFunny, userJohnny, passJohnny);
+    private static List<String> merchants = List.of(merchantIdR1, merchantIdR2);
 
 
     private Facade facadeFunnyLogged;
@@ -31,46 +31,46 @@ public class FacadeTest implements AssertThrowsLike{
     @BeforeEach
     public void setUp() {
         facadeFunnyLogged = new Facade(merchants,validGiftCards(),users, new Clock());
-        funnyToken = facadeFunnyLogged.loginAndGetToken(USER_FUNNY, PASS_FUNNY);
+        funnyToken = facadeFunnyLogged.loginAndGetToken(userFunny, passFunny);
     }
 
 
     @Test
     public void test01userOrPasswordAreInvalid() {
         Facade cleanFacade = new  Facade(merchants,validGiftCards(),users, new Clock());
-        assertThrowsLike(() -> cleanFacade.login(USER_FUNNY,"invalidPassword"),
+        assertThrowsLike(() -> cleanFacade.login(userFunny,"invalidPassword"),
                 Facade.invalidUsernameOrPassword);
-        assertThrowsLike(() -> cleanFacade.login("invalidUser", PASS_FUNNY),
+        assertThrowsLike(() -> cleanFacade.login("invalidUser", passFunny),
                 Facade.invalidUsernameOrPassword);
     }
 
     @Test
     public void test02tokenIsInvalid() {
-        assertThrowsLike(() -> facadeFunnyLogged.redeemGiftCard(USER_FUNNY,"invalidToken", CARD2_ID),
+        assertThrowsLike(() -> facadeFunnyLogged.redeemGiftCard(userFunny,"invalidToken", cardD2Id),
                 Session.incorrectToken);
     }
 
     @Test
     public void test03sessionIsActiveAfterLoginIn() {
-        assertFalse(facadeFunnyLogged.getUserSession(USER_FUNNY).isExpired());
+        assertFalse(facadeFunnyLogged.getUserSession(userFunny).isExpired());
     }
 
     @Test
     public void test04userRedeemedCardCorrectly() {
-        assertTrue(funnyFacadeRedeemedCar1().isCardRedeemed(CARD2_ID));
+        assertTrue(funnyFacadeRedeemedCar1().isCardRedeemed(cardD2Id));
     }
 
     @Test
     public void test05SameUserCanRedeemMultipleGiftCards() {
         assertTrue(funnyFacadeRedeemedCar1()
-                .redeemGiftCard(USER_FUNNY, funnyToken , CARD1_ID)
-                .isCardRedeemed(CARD1_ID));
+                .redeemGiftCard(userFunny, funnyToken , cardD1Id)
+                .isCardRedeemed(cardD1Id));
     }
 
     @Test
     public void test06userCannotRedeemInvalidCard() {
         assertThrowsLike(
-                () -> facadeFunnyLogged.redeemGiftCard(USER_FUNNY, funnyToken,"invalidCardId"),
+                () -> facadeFunnyLogged.redeemGiftCard(userFunny, funnyToken,"invalidCardId"),
                 Facade.giftCardNotFound
         );
     }
@@ -80,20 +80,20 @@ public class FacadeTest implements AssertThrowsLike{
         String johnnyToken = getJohnnyToken();
 
         assertThrowsLike(
-                () -> facadeFunnyLogged.redeemGiftCard(USER_JOHNNY, johnnyToken , CARD2_ID),
+                () -> facadeFunnyLogged.redeemGiftCard(userJohnny, johnnyToken , cardD2Id),
                 Facade.giftCardRedeemed);
     }
 
     @Test
     public void test08buyUsingRedeemedGiftCard() {
-        funnyFacadeRedeemedCar1().checkOut(MERCHANT_ID_R1, CARD2_ID, 80);
-        assertEquals(20, facadeFunnyLogged.balanceOf(USER_FUNNY, funnyToken, CARD2_ID));
+        funnyFacadeRedeemedCar1().checkOut(merchantIdR1, cardD2Id, 80);
+        assertEquals(20, facadeFunnyLogged.balanceOf(userFunny, funnyToken, cardD2Id));
     }
 
     @Test
     public void test09cannotBuyUsingAnUnknownMerchant() {
         assertThrowsLike(
-                () -> facadeFunnyLogged.checkOut("invalidMerchantId", CARD2_ID, 80),
+                () -> facadeFunnyLogged.checkOut("invalidMerchantId", cardD2Id, 80),
                 Facade.merchantNotFound
         );
     }
@@ -101,26 +101,26 @@ public class FacadeTest implements AssertThrowsLike{
     @Test
     public void test10notEnoughFunds() {
         assertThrowsLike(
-                () -> funnyFacadeRedeemedCar1().checkOut(MERCHANT_ID_R1, CARD2_ID, 120),
+                () -> funnyFacadeRedeemedCar1().checkOut(merchantIdR1, cardD2Id, 120),
                 GiftCard.insufficientBalance
         );
     }
 
     @Test
     public void test11checkoutIsRecordedAsMovement() {
-        funnyFacadeRedeemedCar1().checkOut(MERCHANT_ID_R1, CARD2_ID, 80);
-        assertSingleMovement(facadeFunnyLogged.movementsOf(USER_FUNNY, funnyToken, CARD2_ID), 80, MERCHANT_ID_R1);
+        funnyFacadeRedeemedCar1().checkOut(merchantIdR1, cardD2Id, 80);
+        assertSingleMovement(facadeFunnyLogged.movementsOf(userFunny, funnyToken, cardD2Id), 80, merchantIdR1);
     }
 
 
     @Test
     public void test12checkoutIncorrectlyIsNotRecordedAsMovementAndBalanceDoesNotChange() {
         Facade facade = funnyFacadeRedeemedCar1();
-        assertThrowsLike(() ->facade.checkOut(MERCHANT_ID_R1, CARD2_ID, 120)
+        assertThrowsLike(() ->facade.checkOut(merchantIdR1, cardD2Id, 120)
                 ,GiftCard.insufficientBalance);
 
-        assertEquals(0, facade.movementsOf(USER_FUNNY,funnyToken, CARD2_ID).size());
-        assertEquals(100, facade.balanceOf(USER_FUNNY,funnyToken, CARD2_ID));
+        assertEquals(0, facade.movementsOf(userFunny,funnyToken, cardD2Id).size());
+        assertEquals(100, facade.balanceOf(userFunny,funnyToken, cardD2Id));
     }
 
 
@@ -129,13 +129,13 @@ public class FacadeTest implements AssertThrowsLike{
         Clock myClock = customClock();
         Facade facade = facadeWithClock(myClock);
 
-        String firstToken = facade.loginAndGetToken(USER_FUNNY, PASS_FUNNY);
-        LocalDateTime firstCreationTime = facade.getTokenCreationTimeOf(USER_FUNNY);
+        String firstToken = facade.loginAndGetToken(userFunny, passFunny);
+        LocalDateTime firstCreationTime = facade.getTokenCreationTimeOf(userFunny);
 
         myClock.advanceMinutes(1);
 
-        String secondToken = facade.loginAndGetToken(USER_FUNNY, PASS_FUNNY);
-        LocalDateTime secondCreationTime = facade.getTokenCreationTimeOf(USER_FUNNY);
+        String secondToken = facade.loginAndGetToken(userFunny, passFunny);
+        LocalDateTime secondCreationTime = facade.getTokenCreationTimeOf(userFunny);
 
         assertNotEquals(secondToken, firstToken);
         assertNotEquals(secondCreationTime, firstCreationTime);
@@ -145,53 +145,53 @@ public class FacadeTest implements AssertThrowsLike{
     public void test14cannotRedeemGiftCardOrCheckGiftCardStatusIfSessionExpired() {
         Facade expiredSessionFacade = expiredFunnySessionRedeemedCard1();
 
-        assertThrowsLike(()-> expiredSessionFacade.redeemGiftCard(USER_FUNNY, funnyToken, CARD1_ID), Session.sessionExpired);
-        assertThrowsLike(()-> expiredSessionFacade.balanceOf(USER_FUNNY, funnyToken, CARD2_ID), Session.sessionExpired);
-        assertThrowsLike(()-> expiredSessionFacade.movementsOf(USER_FUNNY, funnyToken, CARD2_ID), Session.sessionExpired);
+        assertThrowsLike(()-> expiredSessionFacade.redeemGiftCard(userFunny, funnyToken, cardD1Id), Session.sessionExpired);
+        assertThrowsLike(()-> expiredSessionFacade.balanceOf(userFunny, funnyToken, cardD2Id), Session.sessionExpired);
+        assertThrowsLike(()-> expiredSessionFacade.movementsOf(userFunny, funnyToken, cardD2Id), Session.sessionExpired);
     }
 
     @Test
     public void test15canBuyEvenIfSessionExpired() {
         Facade expiredSessionFacade = expiredFunnySessionRedeemedCard1();
 
-        expiredSessionFacade.checkOut(MERCHANT_ID_R1, CARD2_ID,80);
+        expiredSessionFacade.checkOut(merchantIdR1, cardD2Id,80);
 
-        String secondFunnyToken = expiredSessionFacade.loginAndGetToken(USER_FUNNY, PASS_FUNNY);
-        assertEquals(20, expiredSessionFacade.balanceOf(USER_FUNNY,secondFunnyToken, CARD2_ID));
+        String secondFunnyToken = expiredSessionFacade.loginAndGetToken(userFunny, passFunny);
+        assertEquals(20, expiredSessionFacade.balanceOf(userFunny,secondFunnyToken, cardD2Id));
     }
 
     @Test
     public void test16multipleUsersHaveDifferentSessions() {
-        facadeFunnyLogged.login(USER_FUNNY, PASS_FUNNY).login(USER_JOHNNY, PASS_JOHNNY);
+        facadeFunnyLogged.login(userFunny, passFunny).login(userJohnny, passJohnny);
 
-        assertNotEquals(facadeFunnyLogged.getUserTokenSession(USER_FUNNY), facadeFunnyLogged.getUserTokenSession(USER_JOHNNY));
+        assertNotEquals(facadeFunnyLogged.getUserTokenSession(userFunny), facadeFunnyLogged.getUserTokenSession(userJohnny));
     }
 
     @Test
     public void test17UserCanSpendInPersonalGiftCard() {
         String johnnyToken = getJohnnyToken();
-        facadeFunnyLogged.redeemGiftCard(USER_JOHNNY, johnnyToken, CARD1_ID);
+        facadeFunnyLogged.redeemGiftCard(userJohnny, johnnyToken, cardD1Id);
 
-        facadeFunnyLogged.checkOut(MERCHANT_ID_R1, CARD2_ID,80);
-        facadeFunnyLogged.checkOut(MERCHANT_ID_R2, CARD1_ID,70);
+        facadeFunnyLogged.checkOut(merchantIdR1, cardD2Id,80);
+        facadeFunnyLogged.checkOut(merchantIdR2, cardD1Id,70);
 
-        assertNotEquals(facadeFunnyLogged.balanceOf(USER_FUNNY, funnyToken, CARD2_ID),
-                facadeFunnyLogged.balanceOf(USER_JOHNNY, johnnyToken, CARD1_ID));
+        assertNotEquals(facadeFunnyLogged.balanceOf(userFunny, funnyToken, cardD2Id),
+                facadeFunnyLogged.balanceOf(userJohnny, johnnyToken, cardD1Id));
     }
 
     @Test
     public void test18CannotRedeemSameGiftCard() {
         String johnnyToken = getJohnnyToken();
 
-        assertThrowsLike(() -> facadeFunnyLogged.redeemGiftCard(USER_JOHNNY, johnnyToken, CARD2_ID), GiftCard.giftCardRedeemed);
+        assertThrowsLike(() -> facadeFunnyLogged.redeemGiftCard(userJohnny, johnnyToken, cardD2Id), GiftCard.giftCardRedeemed);
     }
 
     @Test
     public void test19cannotCheckGiftCardOfAnotherUser() {
         String johnnyToken = getJohnnyToken();
 
-        assertThrowsLike(()-> facadeFunnyLogged.balanceOf(USER_JOHNNY, johnnyToken, CARD2_ID), Facade.userDoesNotOwnGiftCard);
-        assertThrowsLike(()-> facadeFunnyLogged.movementsOf(USER_JOHNNY, johnnyToken, CARD2_ID),  Facade.userDoesNotOwnGiftCard);
+        assertThrowsLike(()-> facadeFunnyLogged.balanceOf(userJohnny, johnnyToken, cardD2Id), Facade.userDoesNotOwnGiftCard);
+        assertThrowsLike(()-> facadeFunnyLogged.movementsOf(userJohnny, johnnyToken, cardD2Id),  Facade.userDoesNotOwnGiftCard);
     }
 
     private Clock customClock(){
@@ -216,11 +216,11 @@ public class FacadeTest implements AssertThrowsLike{
     }
 
     private List<GiftCard> validGiftCards() {
-        return List.of(new GiftCard(CARD2_ID, 100),new GiftCard(CARD1_ID, 100));
+        return List.of(new GiftCard(cardD2Id, 100),new GiftCard(cardD1Id, 100));
     }
 
     private Facade funnyFacadeRedeemedCar1() {
-        return facadeFunnyLogged.redeemGiftCard(USER_FUNNY, funnyToken, CARD2_ID);
+        return facadeFunnyLogged.redeemGiftCard(userFunny, funnyToken, cardD2Id);
     }
 
     private void assertSingleMovement(List<GiftCardMovements> movements, Integer amount, String merchantId) {
@@ -230,15 +230,15 @@ public class FacadeTest implements AssertThrowsLike{
     }
 
     private String getJohnnyToken() {
-        return funnyFacadeRedeemedCar1().loginAndGetToken(USER_JOHNNY, PASS_JOHNNY);
+        return funnyFacadeRedeemedCar1().loginAndGetToken(userJohnny, passJohnny);
     }
 
     private Facade expiredFunnySessionRedeemedCard1() {
         Clock myClock = customClock();
         Facade facadeWithClock = facadeWithClock(myClock);
 
-        String funnyToken = facadeWithClock.loginAndGetToken(USER_FUNNY, PASS_FUNNY);
-        facadeWithClock.redeemGiftCard(USER_FUNNY,funnyToken, CARD2_ID);
+        String funnyToken = facadeWithClock.loginAndGetToken(userFunny, passFunny);
+        facadeWithClock.redeemGiftCard(userFunny,funnyToken, cardD2Id);
 
         myClock.advanceMinutes(6);
 

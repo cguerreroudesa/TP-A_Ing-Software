@@ -123,6 +123,4 @@ public class Facade {
         return this.sessions.get(username).getToken();
     }
 
-
-
 }
